@@ -2,6 +2,7 @@ package com.uninorte.proyecto2;
 
 
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -31,6 +32,7 @@ public class Login extends AppCompatActivity implements View.OnClickListener {
     Button btnLogin;
     EditText input_email,input_password;
     TextView btnSignup,btnForgotPass;
+    Context context;
 
     ScrollView activity_main;
 
@@ -60,7 +62,11 @@ public class Login extends AppCompatActivity implements View.OnClickListener {
             }
         });
         //----------------------------------------------------------------------
-        FirebaseApp.initializeApp(this);
+        context=getApplicationContext();
+        FirebaseApp.initializeApp(context);
+
+        //FirebaseApp.initializeApp(this);
+
 
         //progress
         progressDialog = new ProgressDialog(this,R.style.AppTheme_Dark_Dialog);
