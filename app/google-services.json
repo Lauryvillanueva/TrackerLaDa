@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "892848306424",
+    "firebase_url": "https://proyecto2-b7f7f.firebaseio.com",
+    "project_id": "proyecto2-b7f7f",
+    "storage_bucket": "proyecto2-b7f7f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:892848306424:android:9568aaf7296cdce4",
+        "android_client_info": {
+          "package_name": "com.uninorte.proyecto2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "892848306424-rrgid4f00g2tkaf3n0n5bog9ljkq7mr3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLMQRx8PkISb7PPrWHOwydfkzXHS3-qIA"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
