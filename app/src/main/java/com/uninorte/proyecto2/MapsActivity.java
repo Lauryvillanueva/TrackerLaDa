@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Criteria;
@@ -14,6 +15,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -21,6 +23,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
@@ -36,6 +39,11 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 
+import com.akexorcist.googledirection.DirectionCallback;
+import com.akexorcist.googledirection.GoogleDirection;
+import com.akexorcist.googledirection.constant.TransportMode;
+import com.akexorcist.googledirection.model.Direction;
+import com.akexorcist.googledirection.util.DirectionConverter;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -54,19 +62,23 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MapsActivity extends AppCompatActivity
-        implements OnMapReadyCallback,
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        LocationListener {
+        implements OnMapReadyCallback{
     DatabaseReference mDatabase;
     private FirebaseAuth auth;
 
+    private static final Pattern pat = Pattern.compile("[A-Z]+_(-?\\d+\\.\\d+)");
+
     protected final static String LOCATION_KEY = "location-key";
+    private double[] mCoord = new double[2];
 
     protected static final String TAG = MapsActivity.class.getSimpleName();
 
@@ -103,7 +115,7 @@ public class MapsActivity extends AppCompatActivity
     private NotificationManager mNotificationManager;
     int mNotificationId = 001;
 
-
+    protected final static String REQUESTING_LOCATION_UPDATES_KEY = "requesting-location-updates-key";
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     int REQUEST_CODE = 1;
@@ -176,7 +188,7 @@ public class MapsActivity extends AppCompatActivity
         mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mCurrentLocation.getLatitude(),mCurrentLocation.getLongitude()), 21f));
     }
 
-    private void updateMap(List<LatLng> loc) {
+    private void updateMap(List<Location> loc) {
 
         LatLng current;
         LatLng previous;
@@ -185,8 +197,8 @@ public class MapsActivity extends AppCompatActivity
 //      geo fix -3.7039319 40.416653
 //      geo fix -3.7042343 40.4165733
         for (int i = 0; i < loc.size() - 1; i++) {
-            current = loc.get(i);
-            previous = loc.get(i + 1);
+            current = new LatLng(loc.get(i).getLatitude(),loc.get(i).getLongitude());
+            previous = new LatLng(loc.get(i + 1).getLatitude(),loc.get(i + 1).getLongitude());
 
             PolylineOptions polylineOptions = new PolylineOptions()
                     .add(current)
@@ -230,24 +242,41 @@ public class MapsActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(mLocationReceiver, new IntentFilter(LocationUpdaterServices.COPA_RESULT));
+        if (mLocationsList != null && mGoogleMap != null) {
+            updateMap(mLocationsList);
+        }
     }
 
 
     @Override
     protected void onPause() {
-        if (mGoogleApiClient != null) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient,this);
-        }
+
         super.onPause();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-
     }
 
+    @Override
+    protected void onDestroy() {
+        stopService(mRequestLocationIntent);
 
+        super.onDestroy();
+    }
+
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        savedInstanceState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY, mRequestingLocationUpdates);
+
+        savedInstanceState.putParcelableArrayList(LOCATION_KEY, (ArrayList<? extends Parcelable>) mLocationsList);
+//        savedInstanceState.putString(LAST_UPDATED_TIME_STRING_KEY, mLastUpdateTime);
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+/*
       @Override
     public void onLocationChanged(Location location) {
 
@@ -268,7 +297,7 @@ public class MapsActivity extends AppCompatActivity
                   mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,11));
                   mGoogleMap.moveCamera(CameraUpdateFactory.zoomTo(mGoogleMapZoom));
 
-      }
+      }*/
 
     //NOTIFICACION PARA CUANDO EL TRACKING ESTA CORRIENDO O PAUSADO
     public void onClickButtonStayButton(View view) {
@@ -329,10 +358,14 @@ public class MapsActivity extends AppCompatActivity
         UiSettings uiSettings = mGoogleMap.getUiSettings();
         uiSettings.setMapToolbarEnabled(true);
         uiSettings.setZoomControlsEnabled(true);
+
+        if (mLocationsList != null) {
+            updateMap(mLocationsList);
+        }
     }
 
 
-
+/*
         @Override
     public void onConnected(@Nullable Bundle bundle) {
         mLocationRequest = new LocationRequest();
@@ -358,12 +391,12 @@ public class MapsActivity extends AppCompatActivity
 
     protected synchronized void buildGoogleApiClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
+                .addConnectionCallbacks(MapsActivity.this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
                 .build();
         mGoogleApiClient.connect();
-    }
+    }*/
 
     private void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -401,43 +434,8 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_LOCATION: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, yay! Do the
-                    // location-related task you need to do.
-                    if (ContextCompat.checkSelfPermission(this,
-                            Manifest.permission.ACCESS_FINE_LOCATION)
-                            == PackageManager.PERMISSION_GRANTED) {
 
-                        if (mGoogleApiClient == null) {
-                            buildGoogleApiClient();
-                        }
-                        mGoogleMap.setMyLocationEnabled(true);
-
-                    }
-
-                } else {
-
-                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
-                }
-                return;
-            }
-
-            // other 'case' lines to check for other
-            // permissions this app might request
-        }
-    }
-
-    //-----------------------------------------
-
-    //-----------------------------------------
 
     private void buildAlertMessageNoGps() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.AppTheme_Dark_Dialog);
@@ -609,7 +607,7 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-    /*@Override
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
         if (result != null) {
@@ -634,21 +632,22 @@ public class MapsActivity extends AppCompatActivity
                 mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(firstLocation));
                 mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstLocation, 21.0f));
 
-                GoogleDirection.withServerKey(getString(R.string.google_maps_server_key))
-                        .from(mCurrentLocation)
+                GoogleDirection.withServerKey(getString(R.string.google_maps_key))
+                        .from(new LatLng(mCurrentLocation.getLatitude(),mCurrentLocation.getLongitude()))
                         .to(new LatLng(mCoord[0], mCoord[1]))
                         .transportMode(TransportMode.WALKING)
                         .execute(new DirectionCallback() {
                             @Override
-                            public void onDirectionSuccess(Direction direction) {
+                            public void onDirectionSuccess(Direction direction, String rawBody) {
                                 if (direction.isOK()) {
                                     Toast.makeText(getApplicationContext(), "DIRECTION KOK", Toast.LENGTH_LONG).show();
                                     ArrayList<LatLng> directionPositionList = direction.getRouteList().get(0).getLegList().get(0).getDirectionPoint();
                                     PolylineOptions polylineOptions = DirectionConverter.createPolyline(getApplicationContext(), directionPositionList, 5, Color.BLUE);
-                                    mMap.addPolyline(polylineOptions);
+                                    mGoogleMap.addPolyline(polylineOptions);
                                 } else {
                                     Toast.makeText(getApplicationContext(), "NOT OK" + direction.getStatus(), Toast.LENGTH_LONG).show();
                                 }
+
                             }
 
                             @Override
@@ -664,5 +663,35 @@ public class MapsActivity extends AppCompatActivity
         }
     }
 
-*/
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // location-related task you need to do.
+                    if (ContextCompat.checkSelfPermission(this,
+                            Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED) {
+
+
+                    }
+
+                } else {
+
+                    Toast.makeText(this, "permission denied", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
+
 }

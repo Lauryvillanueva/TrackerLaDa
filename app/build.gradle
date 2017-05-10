@@ -26,41 +26,45 @@ dependencies {
     })
 
     //Add library
+
     compile 'com.android.support:appcompat-v7:25.3.1'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:25.3.1'
-    compile 'com.google.firebase:firebase-core:9.8.0'
-    compile 'com.google.firebase:firebase-auth:9.8.0'
-    compile 'com.google.firebase:firebase-database:9.8.0'
-    compile 'com.google.android.gms:play-services-auth:9.8.0'
+    compile 'com.google.firebase:firebase-core:10.0.1'
+    compile 'com.google.firebase:firebase-auth:10.0.1'
+    compile 'com.google.firebase:firebase-database:10.0.1'
     compile 'com.android.support:support-v4:25.3.1'
-    compile 'com.google.android.gms:play-services-location:9.8.0'
-    compile 'com.google.firebase:firebase-core:9.0.0'
-    compile 'com.google.firebase:firebase-messaging:9.0.0'
+    compile 'com.google.firebase:firebase-core:10.0.1'
+    compile 'com.google.firebase:firebase-messaging:10.0.1'
     testCompile 'junit:junit:4.12'
 }
-dependencies {
-    compile 'com.android.support.constraint:constraint-layout:+'
-    compile 'com.google.android.gms:play-services-maps:9.8.0'
-}
-dependencies {
-    compile 'com.android.support.constraint:constraint-layout:+'
-}
-dependencies {
-    compile 'com.android.support.constraint:constraint-layout:+'
-}
-dependencies {
-    compile 'com.android.support.constraint:constraint-layout:+'
-}
+
 dependencies {
     compile 'com.android.support:design:25.+'
     compile 'com.android.support:support-vector-drawable:25.+'
 }
-apply plugin: 'com.google.gms.google-services'
+
 dependencies {
     compile 'com.android.support.constraint:constraint-layout:+'
 }
-dependencies {
-    compile 'com.android.support.constraint:constraint-layout:+'
+
+repositories {
+    jcenter()
 }
+
+dependencies {
+
+    compile 'com.google.android.gms:play-services-base:10.0.1'
+    compile 'com.google.android.gms:play-services-tasks:10.0.1'
+    compile 'com.google.android.gms:play-services-basement:10.0.1'
+    compile 'com.google.android.gms:play-services-location:10.0.1'
+    compile 'com.google.android.gms:play-services-maps:10.0.1'
+    compile 'com.journeyapps:zxing-android-embedded:3.5.0'
+    compile 'com.akexorcist:googledirectionlibrary:latest.release'
+}
+
+android {
+    buildToolsVersion '25.0.0' // Older versions may give compile errors
+}
+
 

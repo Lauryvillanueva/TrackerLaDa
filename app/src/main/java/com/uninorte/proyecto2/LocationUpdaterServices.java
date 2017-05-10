@@ -11,9 +11,11 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.compat.*;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.Manifest;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -33,6 +35,8 @@ public class LocationUpdaterServices extends Service implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener {
+
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
 
     public static final long UPDATE_INTERVAL_IN_MILLISECONDS = 10000;
 
@@ -190,6 +194,8 @@ public class LocationUpdaterServices extends Service implements
         mLocationRequest.setFastestInterval(FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
+
+
     protected void startLocationUpdates() {
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -206,6 +212,8 @@ public class LocationUpdaterServices extends Service implements
         LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient,
                 mLocationRequest, this);
     }
+
+
 
     protected void stopLocationUpdates() {
 
