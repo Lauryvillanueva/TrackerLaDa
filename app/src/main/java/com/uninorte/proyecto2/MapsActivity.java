@@ -131,6 +131,8 @@ public class MapsActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
+        mRequestingLocationUpdates = true;
+
         mapFrag = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFrag.getMapAsync(this);
 
@@ -157,7 +159,10 @@ public class MapsActivity extends AppCompatActivity
             @Override
             public void onReceive(Context context, Intent intent) {
                 mPreviousLocation = mCurrentLocation;
-                mCurrentLocation = intent.getParcelableExtra(LocationUpdaterServices.COPA_MESSAGE);
+                LatLng cLocation =intent.getParcelableExtra(LocationUpdaterServices.COPA_MESSAGE);
+                mCurrentLocation = new Location("");
+                mCurrentLocation.setLatitude(cLocation.latitude);
+                mCurrentLocation.setLongitude(cLocation.longitude);
                 updateMap();
                 mLocationsList.add(mCurrentLocation);
 
@@ -192,10 +197,6 @@ public class MapsActivity extends AppCompatActivity
 
         LatLng current;
         LatLng previous;
-//      geo fix -3.7038395 40.416745
-//      geo fix -3.7036161 40.4166984
-//      geo fix -3.7039319 40.416653
-//      geo fix -3.7042343 40.4165733
         for (int i = 0; i < loc.size() - 1; i++) {
             current = new LatLng(loc.get(i).getLatitude(),loc.get(i).getLongitude());
             previous = new LatLng(loc.get(i + 1).getLatitude(),loc.get(i + 1).getLongitude());
@@ -207,7 +208,6 @@ public class MapsActivity extends AppCompatActivity
                     .width(5);
 
             mGoogleMap.addPolyline(polylineOptions);
-//            mMap.addMarker(new MarkerOptions().position(current).title(current.toString()));
             mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(current, 21f));
         }
 
@@ -218,11 +218,9 @@ public class MapsActivity extends AppCompatActivity
             Log.d(TAG, "Updating values from bundle");
         }
         if (savedInstanceState != null) {
-            // Update the value of mLocationsList from the Bundle and update the UI to show the
-            // correct latitude and longitude.
+
             if (savedInstanceState.keySet().contains(LOCATION_KEY)) {
-                // Since LOCATION_KEY was found in the Bundle, we can be sure that mLocationsList
-                // is not null.
+
                 mLocationsList = savedInstanceState.getParcelableArrayList(LOCATION_KEY);
                 mCurrentLocation = mLocationsList.get(mLocationsList.size() - 1);
                 if (mLocationsList.size() >= 2) {
@@ -250,11 +248,6 @@ public class MapsActivity extends AppCompatActivity
     }
 
 
-    @Override
-    protected void onPause() {
-
-        super.onPause();
-    }
 
     @Override
     protected void onStop() {
@@ -358,6 +351,7 @@ public class MapsActivity extends AppCompatActivity
         UiSettings uiSettings = mGoogleMap.getUiSettings();
         uiSettings.setMapToolbarEnabled(true);
         uiSettings.setZoomControlsEnabled(true);
+        uiSettings.setMyLocationButtonEnabled(true);
 
         if (mLocationsList != null) {
             updateMap(mLocationsList);
@@ -402,13 +396,11 @@ public class MapsActivity extends AppCompatActivity
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
 
-            // Should we show an explanation?
+
             if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                     Manifest.permission.ACCESS_FINE_LOCATION)) {
 
-                // Show an explanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
+
                 new AlertDialog.Builder(this)
                         .setTitle("Location Permission Needed")
                         .setMessage("This app needs the Location permission, please accept to use location functionality")
@@ -628,6 +620,7 @@ public class MapsActivity extends AppCompatActivity
                 }
                 // Add a marker and move the camera
                 LatLng firstLocation = new LatLng(mCoord[0], mCoord[1]);
+                Log.d(TAG, "onActivityResult: "+firstLocation.latitude+","+firstLocation.longitude);
                 mGoogleMap.addMarker(new MarkerOptions().position(firstLocation).title("Dest"));
                 mGoogleMap.moveCamera(CameraUpdateFactory.newLatLng(firstLocation));
                 mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstLocation, 21.0f));
